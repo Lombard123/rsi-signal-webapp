@@ -8,7 +8,11 @@
     body { font-family: Arial; background: #121212; color: #eee; padding: 10px; }
     h1 { text-align: center; color: gold; }
     .signal { font-size: 32px; font-weight: bold; text-align: center; margin-top: 15px; }
-    .buy { color: #4CAF50; } .sell { color: #F44336; } .wait { color: #FFC107; }
+    .strong-buy { color: #00ff00; }
+    .weak-buy { color: #88ff88; }
+    .strong-sell { color: #ff4444; }
+    .weak-sell { color: #ff9999; }
+    .wait { color: #FFC107; }
     input, button { width: 100%; padding: 10px; margin-top: 10px; border-radius: 5px; }
     .box { background: #222; margin-top: 20px; padding: 15px; border-radius: 8px; }
   </style>
@@ -19,27 +23,22 @@
   <input type="text" id="userId" placeholder="Telegram User ID">
   <button onclick="start()">Start Signal Updates</button>
 
-  <div class="box">
-    <h2>Gold (XAUUSD)</h2>
-    <div id="XAUUSD" class="signal wait">Loading...</div>
-  </div>
-  <div class="box">
-    <h2>US30 (Dow Jones)</h2>
-    <div id="US30" class="signal wait">Loading...</div>
-  </div>
-  <div class="box">
-    <h2>BTCUSD</h2>
-    <div id="BTCUSD" class="signal wait">Loading...</div>
-  </div><script>
+  <div class="box"><h2>Gold (XAUUSD)</h2><div id="XAUUSD" class="signal wait">Loading...</div></div>
+  <div class="box"><h2>US30 (Dow Jones)</h2><div id="US30" class="signal wait">Loading...</div></div>
+  <div class="box"><h2>BTCUSD</h2><div id="BTCUSD" class="signal wait">Loading...</div></div>
+  <div class="box"><h2>NAS100</h2><div id="NAS100" class="signal wait">Loading...</div></div>
+
+<script>
 const RSI_PERIOD_1 = 7;
 const RSI_PERIOD_2 = 14;
 const ENVELOPE_PERCENT = 0.02;
 const symbols = {
   XAUUSD: "GC=F",
   US30: "^DJI",
-  BTCUSD: "BTC-USD"
+  BTCUSD: "BTC-USD",
+  NAS100: "^NDX"
 };
-const previous = { XAUUSD: "", US30: "", BTCUSD: "" };
+const previous = {};
 
 function getEnvelope() {
   return { upper: 50 + (50 * ENVELOPE_PERCENT), lower: 50 - (50 * ENVELOPE_PERCENT) };
@@ -72,15 +71,21 @@ function rsi(values, period) {
 }
 
 function getSignal(r1, r2, env) {
-  if (r1 < env.lower && r2 < env.lower) return "BUY";
-  if (r1 > env.upper && r2 > env.upper) return "SELL";
-  return "WAIT";
+  if (r1 < env.lower && r2 < env.lower) {
+    if (r1 < 40 && r2 < 40) return ["🟢Strong Buy", "strong-buy"];
+    else return ["🟢Weak Buy", "weak-buy"];
+  }
+  if (r1 > env.upper && r2 > env.upper) {
+    if (r1 > 60 && r2 > 60) return ["🔴Strong Sell", "strong-sell"];
+    else return ["🔴Weak Sell", "weak-sell"];
+  }
+  return ["WAIT", "wait"];
 }
 
-function updateDisplay(symbol, signal) {
+function updateDisplay(symbol, signal, cls) {
   let el = document.getElementById(symbol);
   el.textContent = signal;
-  el.className = "signal " + signal.toLowerCase();
+  el.className = "signal " + cls;
 }
 
 async function updateAll() {
@@ -89,8 +94,8 @@ async function updateAll() {
     let prices = await fetchData(symbol);
     let r1 = rsi(prices, RSI_PERIOD_1);
     let r2 = rsi(prices, RSI_PERIOD_2);
-    let sig = getSignal(r1, r2, envelope);
-    updateDisplay(symbol, sig);
+    let [sig, cls] = getSignal(r1, r2, envelope);
+    updateDisplay(symbol, sig, cls);
     if (sig !== previous[symbol]) {
       previous[symbol] = sig;
       sendTelegram(symbol, sig);
