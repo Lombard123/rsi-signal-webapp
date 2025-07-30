@@ -31,7 +31,7 @@
 <script>
 const RSI_PERIOD_1 = 7;
 const RSI_PERIOD_2 = 14;
-const ENVELOPE_PERCENT = 0.02;
+const ENVELOPE_PERCENT = 0.10; // Widened to ±10%
 const symbols = {
   XAUUSD: "GC=F",
   US30: "^DJI",
@@ -71,14 +71,15 @@ function rsi(values, period) {
 }
 
 function getSignal(r1, r2, env) {
-  if (r1 < env.lower && r2 < env.lower) {
-    if (r1 < 40 && r2 < 40) return ["🟢Strong Buy", "strong-buy"];
-    else return ["🟢Weak Buy", "weak-buy"];
-  }
-  if (r1 > env.upper && r2 > env.upper) {
-    if (r1 > 60 && r2 > 60) return ["🔴Strong Sell", "strong-sell"];
-    else return ["🔴Weak Sell", "weak-sell"];
-  }
+  const low = r1 < env.lower || r2 < env.lower;
+  const high = r1 > env.upper || r2 > env.upper;
+  const bothLow = r1 < env.lower && r2 < env.lower;
+  const bothHigh = r1 > env.upper && r2 > env.upper;
+
+  if (bothLow) return ["🟢Strong Buy", "strong-buy"];
+  if (low) return ["🟢Weak Buy", "weak-buy"];
+  if (bothHigh) return ["🔴Strong Sell", "strong-sell"];
+  if (high) return ["🔴Weak Sell", "weak-sell"];
   return ["WAIT", "wait"];
 }
 
